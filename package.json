@@ -1,0 +1,13 @@
+{
+  "name": "financial-document-extractor",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/prepare_static_site.js",
+    "dev": "npx serve public",
+    "start": "npx serve public"
+  },
+  "devDependencies": {
+    "serve": "^14.2.4"
+  }
+}

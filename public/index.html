@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Keras Financial Document Extractor</title>
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs" type="module"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #081014;
+        color: #f8fafc;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      main {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 36px 20px 64px;
+      }
+      .hero {
+        display: grid;
+        grid-template-columns: 0.92fr 1.08fr;
+        min-height: 92vh;
+        align-items: center;
+        gap: 30px;
+      }
+      .pill {
+        display: inline-flex;
+        border: 1px solid rgba(250, 204, 21, 0.35);
+        background: rgba(250, 204, 21, 0.1);
+        color: #fef3c7;
+        border-radius: 999px;
+        padding: 9px 14px;
+        font-size: 14px;
+        font-weight: 800;
+      }
+      h1 {
+        margin: 22px 0 0;
+        font-size: clamp(44px, 7vw, 82px);
+        line-height: 0.94;
+        letter-spacing: 0;
+      }
+      p {
+        color: #cbd5e1;
+        font-size: 18px;
+        line-height: 1.75;
+      }
+      .metrics,
+      .actions,
+      .results {
+        display: grid;
+        gap: 14px;
+      }
+      .metrics {
+        grid-template-columns: repeat(3, 1fr);
+        margin-top: 28px;
+      }
+      .actions {
+        grid-template-columns: 1fr 1fr;
+        margin-top: 14px;
+      }
+      .results {
+        grid-template-columns: 1fr 0.82fr;
+        margin-top: 32px;
+      }
+      .metric,
+      .panel,
+      .note {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.045);
+        border-radius: 8px;
+      }
+      .metric {
+        padding: 16px;
+      }
+      .metric span {
+        display: block;
+        color: #94a3b8;
+        font-size: 13px;
+      }
+      .metric strong {
+        display: block;
+        margin-top: 8px;
+        color: #fde68a;
+        font-size: 22px;
+      }
+      .panel {
+        padding: 20px;
+      }
+      textarea {
+        width: 100%;
+        min-height: 390px;
+        resize: vertical;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: #020617;
+        color: #e2e8f0;
+        border-radius: 8px;
+        padding: 16px;
+        outline: none;
+        font: 14px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      textarea:focus {
+        border-color: #fde68a;
+      }
+      button {
+        border: 0;
+        border-radius: 6px;
+        padding: 14px 18px;
+        font: inherit;
+        font-weight: 900;
+        cursor: pointer;
+      }
+      .primary {
+        background: #fde68a;
+        color: #0f172a;
+      }
+      .secondary {
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: transparent;
+        color: #e2e8f0;
+      }
+      .status {
+        margin-top: 14px;
+        color: #94a3b8;
+        font-size: 14px;
+      }
+      .note {
+        margin-top: 20px;
+        padding: 15px;
+        color: #fef3c7;
+        background: rgba(250, 204, 21, 0.1);
+      }
+      pre {
+        min-height: 420px;
+        max-height: 620px;
+        overflow: auto;
+        margin: 0;
+        background: rgba(0, 0, 0, 0.38);
+        border-radius: 8px;
+        padding: 16px;
+        color: #fef3c7;
+        font-size: 13px;
+        line-height: 1.65;
+      }
+      .row {
+        margin-bottom: 12px;
+      }
+      .row-label {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 5px;
+        font-size: 13px;
+        color: #e2e8f0;
+      }
+      .bar {
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+      }
+      .fill {
+        height: 100%;
+        min-width: 2%;
+        border-radius: inherit;
+        background: #fde68a;
+      }
+      .chip {
+        display: inline-block;
+        margin: 0 7px 7px 0;
+        padding: 7px 10px;
+        border-radius: 999px;
+        background: rgba(125, 211, 252, 0.1);
+        color: #bae6fd;
+        font-size: 12px;
+      }
+      .warning {
+        border: 1px solid rgba(251, 191, 36, 0.25);
+        background: rgba(251, 191, 36, 0.1);
+        color: #fde68a;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 10px;
+        font-size: 13px;
+      }
+      input {
+        display: none;
+      }
+      @media (max-width: 930px) {
+        .hero,
+        .results {
+          grid-template-columns: 1fr;
+        }
+        .metrics,
+        .actions {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <div>
+          <div class="pill">Real Keras financial document router</div>
+          <h1>Financial Document Extractor</h1>
+          <p>
+            Paste OCR text or upload TXT, CSV, JSON, or PDF files. The browser runs an exported Keras model, detects the
+            financial document type, extracts fields, returns JSON, and flags low-confidence or unknown input.
+          </p>
+          <div class="metrics">
+            <div class="metric"><span>Dataset</span><strong id="dataset">Loading</strong></div>
+            <div class="metric"><span>Document Types</span><strong id="classes">--</strong></div>
+            <div class="metric"><span>Macro F1</span><strong id="f1">--</strong></div>
+          </div>
+          <div class="note">
+            Training data is a labeled generated financial corpus. The app is honest about uncertainty and preserves raw
+            text so real documents can be reviewed.
+          </div>
+        </div>
+
+        <div class="panel">
+          <textarea id="input"></textarea>
+          <input id="file" type="file" accept=".txt,.csv,.json,.md,.pdf,text/*,application/pdf" />
+          <div class="actions">
+            <button class="primary" id="extract">Extract Financial JSON</button>
+            <button class="secondary" id="upload">Upload TXT / CSV / PDF</button>
+          </div>
+          <div class="status" id="status">Loading trained Keras model</div>
+        </div>
+      </section>
+
+      <section class="results">
+        <div class="panel">
+          <h2>Extracted JSON</h2>
+          <pre><code id="json">Run extraction to see JSON.</code></pre>
+        </div>
+        <div class="panel">
+          <h2>Model Decision</h2>
+          <div id="decision"></div>
+          <h2>Warnings</h2>
+          <div id="warnings"></div>
+          <h2>Detected Entities</h2>
+          <div id="entities"></div>
+        </div>
+      </section>
+    </main>
+
+    <script type="module">
+      const sample = `Invoice INV-2026-041 from Northwind Analytics to Atlas Retail.
+Issue date May 2, 2026. Due date June 1, 2026.
+Line items: data pipeline audit at $1,710.00, dashboard build at $2,640.00.
+Tax $392.40. Total due $4,742.40. Payment terms net 30.`
+
+      let model = null
+      const inputEl = document.getElementById("input")
+      const statusEl = document.getElementById("status")
+      const jsonEl = document.getElementById("json")
+      const decisionEl = document.getElementById("decision")
+      const warningsEl = document.getElementById("warnings")
+      const entitiesEl = document.getElementById("entities")
+      const fileEl = document.getElementById("file")
+      inputEl.value = sample
+
+      function tokenize(text) {
+        return text.toLowerCase().match(/[a-z0-9@._+#$%-]+/g) || []
+      }
+
+      function vectorize(text) {
+        const vector = new Array(Object.keys(model.vocabulary).length).fill(0)
+        for (const token of tokenize(text)) {
+          const index = model.vocabulary[token]
+          if (index !== undefined) vector[index] += 1
+        }
+        return vector.map((value) => Math.log1p(value))
+      }
+
+      function dense(input, kernel, bias) {
+        const output = new Array(bias.length).fill(0)
+        for (let out = 0; out < bias.length; out += 1) {
+          let sum = bias[out]
+          for (let i = 0; i < input.length; i += 1) sum += input[i] * kernel[i][out]
+          output[out] = sum
+        }
+        return output
+      }
+
+      function relu(values) {
+        return values.map((value) => Math.max(0, value))
+      }
+
+      function softmax(values) {
+        const max = Math.max(...values)
+        const exp = values.map((value) => Math.exp(value - max))
+        const total = exp.reduce((sum, value) => sum + value, 0)
+        return exp.map((value) => value / total)
+      }
+
+      function route(text) {
+        const w = model.weights
+        const h1 = relu(dense(vectorize(text), w.dense1_kernel, w.dense1_bias))
+        const h2 = relu(dense(h1, w.dense2_kernel, w.dense2_bias))
+        const probs = softmax(dense(h2, w.out_kernel, w.out_bias))
+        const ranked = model.classes.map((label, index) => ({ label, score: probs[index] })).sort((a, b) => b.score - a.score)
+        const top = ranked[0]
+        return { label: top.score < model.unknown_threshold ? "unknown" : top.label, confidence: top.score, ranked }
+      }
+
+      function unique(values) {
+        return [...new Set(values.filter(Boolean).map((value) => String(value).trim()))]
+      }
+
+      function entities(text) {
+        const patterns = [
+          ["money", /(?:[$€£]|USD|EUR|GBP)\s?[\d,]+(?:\.\d{2})?/gi],
+          ["date", /\b(?:\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s+\d{4})\b/gi],
+          ["invoice_id", /\bINV[-#\s]?[A-Z0-9-]{3,}\b/gi],
+          ["purchase_order", /\bPO[-#\s]?[A-Z0-9-]{3,}\b/gi],
+          ["claim", /\bCLM[-#\s]?[A-Z0-9-]{3,}\b/gi],
+          ["policy", /\bPOL[-#\s]?[A-Z0-9-]{3,}\b/gi],
+          ["tax_id", /\bTAX[-#\s]?[A-Z0-9-]{3,}\b/gi],
+          ["iban_or_account", /\b[A-Z]{2}\d{2}(?:\s?\d{4}){2,5}\b/gi],
+          ["email", /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi],
+        ]
+        return patterns.flatMap(([type, pattern]) => unique(text.match(pattern) || []).map((value) => ({ type, value })))
+      }
+
+      function extract(schema, text, found) {
+        const lower = text.toLowerCase()
+        const money = found.filter((item) => item.type === "money").map((item) => item.value)
+        const dates = found.filter((item) => item.type === "date").map((item) => item.value)
+        const ids = found.filter((item) => !["money", "date", "email"].includes(item.type))
+        const base = {
+          document_type: schema,
+          detected_money: money,
+          detected_dates: dates,
+          detected_ids: ids,
+          detected_emails: found.filter((item) => item.type === "email").map((item) => item.value),
+        }
+        if (schema === "invoice") {
+          return {
+            ...base,
+            invoice_id: text.match(/\bINV[-#\s]?([A-Z0-9-]{3,})/i)?.[1] || null,
+            vendor: text.match(/from\s+(.+?)\s+to\s+/i)?.[1] || null,
+            client: text.match(/\s+to\s+(.+?)(?:\.|\n)/i)?.[1] || null,
+            total_due: money.at(-1) || null,
+            due_date: text.match(/due date\s+([^.\n]+)/i)?.[1] || dates.at(-1) || null,
+          }
+        }
+        if (schema === "bank_statement") {
+          return {
+            ...base,
+            account: found.find((item) => item.type === "iban_or_account")?.value || null,
+            opening_balance: text.match(/opening balance\s+([^,.\n]+)/i)?.[1] || money[0] || null,
+            closing_balance: text.match(/closing balance\s+([^,.\n]+)/i)?.[1] || money.at(-1) || null,
+            transaction_keywords: unique(["deposit", "withdrawal", "transfer", "fee", "salary", "card"].filter((term) => lower.includes(term))),
+          }
+        }
+        if (schema === "payslip") {
+          return {
+            ...base,
+            employee: text.match(/employee\s+([^.\n]+)/i)?.[1] || null,
+            gross_salary: text.match(/gross salary\s+([^,.\n]+)/i)?.[1] || money[0] || null,
+            deductions: text.match(/deductions\s+([^,.\n]+)/i)?.[1] || null,
+            net_pay: text.match(/net pay\s+([^,.\n]+)/i)?.[1] || money.at(-1) || null,
+          }
+        }
+        if (schema === "purchase_order") {
+          return {
+            ...base,
+            purchase_order_id: text.match(/\bPO[-#\s]?([A-Z0-9-]{3,})/i)?.[1] || null,
+            buyer: text.match(/buyer\s+(.+?)\s+supplier/i)?.[1] || null,
+            supplier: text.match(/supplier\s+(.+?)(?:\.|\n)/i)?.[1] || null,
+            approved_budget: text.match(/approved budget\s+([^,.\n]+)/i)?.[1] || money[0] || null,
+          }
+        }
+        if (schema === "tax_form") {
+          return {
+            ...base,
+            taxpayer_id: text.match(/\bTAX[-#\s]?([A-Z0-9-]{3,})/i)?.[1] || null,
+            declared_income: text.match(/declared income\s+([^,.\n]+)/i)?.[1] || money[0] || null,
+            tax_withheld: text.match(/tax withheld\s+([^,.\n]+)/i)?.[1] || null,
+            balance_or_refund: money.at(-1) || null,
+          }
+        }
+        return {
+          ...base,
+          summary: text.length > 240 ? `${text.slice(0, 240)}...` : text,
+        }
+      }
+
+      function warnings(label, confidence, text, found) {
+        const out = []
+        if (label === "unknown") out.push("Model marked this as unknown/general text instead of forcing a financial document type.")
+        if (confidence < 0.72) out.push("Low confidence. Review extracted fields before using this as structured data.")
+        if (text.trim().length < 45) out.push("Input is short, so extraction may be incomplete.")
+        if (found.filter((item) => item.type === "money").length === 0) out.push("No money values were detected.")
+        return out.length ? out : ["No warnings for the latest run."]
+      }
+
+      function renderDecision(ranked) {
+        decisionEl.innerHTML = ranked
+          .slice(0, 5)
+          .map(
+            (item) => `
+              <div class="row">
+                <div class="row-label"><span>${item.label.replaceAll("_", " ")}</span><span>${(item.score * 100).toFixed(1)}%</span></div>
+                <div class="bar"><div class="fill" style="width:${Math.max(2, item.score * 100)}%"></div></div>
+              </div>
+            `,
+          )
+          .join("")
+      }
+
+      function run() {
+        if (!model) return
+        const text = inputEl.value.trim()
+        if (!text) {
+          statusEl.textContent = "Paste or upload a document first."
+          return
+        }
+        const routed = route(text)
+        const found = entities(text)
+        const extracted = extract(routed.label, text, found)
+        const payload = {
+          schema: routed.label,
+          confidence: Number(routed.confidence.toFixed(4)),
+          ...extracted,
+          raw_text: text,
+        }
+        jsonEl.textContent = JSON.stringify(payload, null, 2)
+        renderDecision(routed.ranked)
+        warningsEl.innerHTML = warnings(routed.label, routed.confidence, text, found)
+          .map((item) => `<div class="warning">${item}</div>`)
+          .join("")
+        entitiesEl.innerHTML = found.length
+          ? found.map((item) => `<span class="chip">${item.type}: ${item.value}</span>`).join("")
+          : '<span class="chip">No standard entities detected</span>'
+        statusEl.textContent = "Extraction complete"
+      }
+
+      async function extractPdf(file) {
+        statusEl.textContent = "Reading PDF text in the browser"
+        const pdfjsLib = await import("https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs")
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs"
+        const bytes = new Uint8Array(await file.arrayBuffer())
+        const pdf = await pdfjsLib.getDocument({ data: bytes }).promise
+        const pages = []
+        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+          const page = await pdf.getPage(pageNumber)
+          const content = await page.getTextContent()
+          pages.push(content.items.map((item) => item.str).join(" "))
+        }
+        return pages.join("\n\n")
+      }
+
+      async function readFile(file) {
+        try {
+          if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+            inputEl.value = await extractPdf(file)
+          } else {
+            inputEl.value = await file.text()
+          }
+          run()
+        } catch (error) {
+          statusEl.textContent = `Could not read file: ${error.message}`
+        }
+      }
+
+      fetch("/model/financial_router.json")
+        .then((response) => response.json())
+        .then((loaded) => {
+          model = loaded
+          document.getElementById("dataset").textContent = "financial corpus"
+          document.getElementById("classes").textContent = String(model.classes.length)
+          document.getElementById("f1").textContent = `${(model.metrics.macro_f1 * 100).toFixed(1)}%`
+          statusEl.textContent = "Paste text or upload a document"
+          run()
+        })
+        .catch(() => {
+          statusEl.textContent = "Model artifact is missing. Run the training script first."
+        })
+
+      document.getElementById("extract").addEventListener("click", run)
+      document.getElementById("upload").addEventListener("click", () => fileEl.click())
+      fileEl.addEventListener("change", (event) => {
+        const file = event.target.files && event.target.files[0]
+        if (file) readFile(file)
+      })
+    </script>
+  </body>
+</html>
